@@ -17,7 +17,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
 
-        LOADERS = {
+        loaders = {
             'users.csv': self.load_users,
             'category.csv': self.load_categories,
             'genre.csv': self.load_genres,
@@ -27,7 +27,7 @@ class Command(BaseCommand):
             'comments.csv': self.load_comments,
         }
 
-        for loader in LOADERS.values():
+        for loader in loaders.values():
             loader()
 
         self.stdout.write(
