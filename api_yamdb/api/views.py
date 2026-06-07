@@ -2,7 +2,8 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
-from django.db.models import Avg
+from django.db.models import Avg, IntegerField
+from django.db.models.functions import Cast
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
@@ -10,6 +11,7 @@ from rest_framework.filters import SearchFilter
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import AccessToken
 
 from api.filters import TitleFilter
 from api.permissions import (IsAdmin, IsAdminOrReadOnly,
@@ -94,17 +96,16 @@ class TokenAPIView(BaseAuthAPIView):
         - username
         - confirmation_code
 
-    Получает:
-        - JWT token
-
-    Token формируется после успешной валидации serializer.
+    Token формируется после успешной валидации в serializer.
     """
 
     serializer_class = TokenSerializer
 
     def handle(self, serializer):
         """Возвращает JWT-токен после успешной валидации."""
-        token = str(serializer.validated_data['token'])
+        token = str(
+            AccessToken.for_user(serializer.user)
+        )
         return Response(
             {'token': token}
         )
@@ -123,6 +124,7 @@ class CategoryGenreMixinViewSet(mixins.ListModelMixin,
         - поиск по имени name
         - обращение к объекту по slug
     """
+
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (SearchFilter,)
     search_fields = ('name',)
@@ -138,6 +140,7 @@ class CategoryViewSet(CategoryGenreMixinViewSet):
         - добавлять новую категорию (POST), администратор
         - удалять категорию (DELETE), администратор
     """
+
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
@@ -151,6 +154,7 @@ class GenreViewSet(CategoryGenreMixinViewSet):
         - добавлять новый жанр (POST), администратор
         - удалять жанр (DELETE), администратор
     """
+
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
 
@@ -170,7 +174,14 @@ class TitleViewSet(viewsets.ModelViewSet):
 
     Вычисляет среднюю оценку произведения на основании отзывов.
     """
-    queryset = Title.objects.annotate(rating=Avg('reviews__score'))
+
+    queryset = Title.objects.annotate(
+        rating=Cast(
+            Avg('reviews__score'),
+            IntegerField()
+        )
+    ).order_by('rating')
+
     http_method_names = ('get', 'post', 'patch', 'delete',)
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
@@ -195,6 +206,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
         - частично обновлять отзыв (PATCH), автор, модератор или администратор
         - удалять отзыв (DELETE), автор, модератор или администратор
     """
+
     serializer_class = ReviewSerializer
     permission_classes = (
         permissions.IsAuthenticatedOrReadOnly,
@@ -227,6 +239,7 @@ class CommentViewSet(viewsets.ModelViewSet):
         администратор
         - удалять комментарий (DELETE), автор, модератор или администратор
     """
+
     serializer_class = CommentSerializer
     permission_classes = (
         permissions.IsAuthenticatedOrReadOnly,
@@ -263,6 +276,7 @@ class UserViewSet(viewsets.ModelViewSet):
     Доступ для любого авторизованного пользователя:
         - получение и изменение данных своей учетной записи по 'me'
     """
+
     queryset = User.objects.all()
     serializer_class = UserSerializer
     lookup_field = 'username'

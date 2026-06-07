@@ -1,10 +1,7 @@
-from datetime import date
-
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.core.validators import MaxValueValidator, MinValueValidator
 from rest_framework import serializers
-from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.generics import get_object_or_404
 
 from api.validators import username_validator
@@ -26,6 +23,7 @@ class SignUpSerializer(serializers.Serializer):
     Исключения:
         ValidationError: если введены занятые username и email
     """
+
     username = serializers.CharField(
         max_length=MAX_USERNAME_LENGTH,
         required=True,
@@ -52,7 +50,7 @@ class SignUpSerializer(serializers.Serializer):
         return data
 
     def create(self, validated_data):
-        user, created = User.objects.get_or_create(**validated_data)
+        user, _ = User.objects.get_or_create(**validated_data)
         return user
 
 
@@ -62,11 +60,11 @@ class TokenSerializer(serializers.Serializer):
 
     Обеспечивает:
         - валидацию username и confirmation_code
-        - выдачу токена пользователю
 
     Исключения:
-        ValidationError: если токен неверен
+        ValidationError: если код подтверждения неверен
     """
+
     username = serializers.CharField(
         max_length=MAX_USERNAME_LENGTH,
         required=True,
@@ -83,7 +81,7 @@ class TokenSerializer(serializers.Serializer):
         if not default_token_generator.check_token(user, confirmation_code):
             raise serializers.ValidationError('Неверный код подтверждения')
 
-        data['token'] = str(AccessToken.for_user(user))
+        self.user = user
         return data
 
 
@@ -126,7 +124,8 @@ class TitleReadSerializer(serializers.ModelSerializer):
         - получение одного произведения (GET)
         - валидацию года выпуска произведения
     """
-    rating = serializers.IntegerField(read_only=True)
+
+    rating = serializers.IntegerField(read_only=True, default=None)
     genre = GenreSerializer(many=True, read_only=True)
     category = CategorySerializer(read_only=True)
 
@@ -148,10 +147,12 @@ class TitleWriteSerializer(serializers.ModelSerializer):
     Исключения:
         ValidationError: нельзя добавлять произведение из будущего
     """
+
     genre = serializers.SlugRelatedField(
         many=True,
         queryset=Genre.objects.all(),
-        slug_field='slug')
+        slug_field='slug',
+        allow_empty=False)
     category = serializers.SlugRelatedField(
         queryset=Category.objects.all(),
         slug_field='slug')
@@ -159,13 +160,6 @@ class TitleWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Title
         fields = ('id', 'name', 'year', 'description', 'genre', 'category')
-
-    def validate_year(self, value):
-        current_year = date.today().year
-        if value > current_year:
-            raise serializers.ValidationError(
-                'Нельзя добавлять произведение из будущего!')
-        return value
 
     def to_representation(self, instance):
         return TitleReadSerializer(instance).data
@@ -180,11 +174,12 @@ class ReviewSerializer(serializers.ModelSerializer):
         - получение одного отзыва (GET)
         - создание отзыва (POST)
         - частичное обновление и удаление отзыва (PATCH, DELETE)
-        - валидацию ретинга от 1 до 10
+        - валидацию рейтинга
 
     Исключения:
         ValidationError: на одно произведение можно оставить только один отзыв
     """
+
     author = serializers.SlugRelatedField(
         read_only=True,
         slug_field='username'
@@ -198,8 +193,7 @@ class ReviewSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Review
-        fields = '__all__'
-        read_only_fields = ('author', 'pub_date', 'title')
+        fields = ('id', 'text', 'author', 'score', 'pub_date')
 
     def validate(self, data):
         request = self.context['request']
@@ -226,6 +220,7 @@ class CommentSerializer(serializers.ModelSerializer):
         - создание комментария (POST)
         - частичное обновление и удаление комментария (PATCH, DELETE)
     """
+
     author = serializers.SlugRelatedField(
         read_only=True,
         slug_field='username'
@@ -233,8 +228,7 @@ class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = '__all__'
-        read_only_fields = ('author', 'pub_date', 'review')
+        fields = ('id', 'text', 'author', 'pub_date')
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -248,6 +242,7 @@ class UserSerializer(serializers.ModelSerializer):
         - частичное обновление данных пользователя (PATCH)
         - удаление пользователя (DELETE)
     """
+
     class Meta:
         model = User
         fields = ('username', 'email', 'first_name', 'last_name', 'bio',

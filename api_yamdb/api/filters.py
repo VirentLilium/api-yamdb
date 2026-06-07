@@ -13,6 +13,7 @@ class TitleFilter(FilterSet):
         - название произведения
         - год выпуска произведения
     """
+
     name = CharFilter(
         field_name='name',
         lookup_expr='contains',

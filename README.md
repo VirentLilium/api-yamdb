@@ -145,6 +145,15 @@ Linux:
 ```bash
   python manage.py runserver
 ```
+7. **Дополнительно: наполнение базы данных**
+В директории /api_yamdb/static/data содержатся файлы в формате csv с контентом для ресурсов Users, Titles, Categories, Genres, Reviews и Comments.
+
+Для комфортного тестирования API вы можете использовать management-команду load_csv, добавляющую данные в БД через Django ORM.
+
+Из директории /api_yamdb выполните команду:
+```bash
+python manage.py load_csv
+```
 
 ## Документация
 Обмен данными с API происходит в формате JSON.

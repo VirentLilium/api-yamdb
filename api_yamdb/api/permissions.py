@@ -7,6 +7,7 @@ class IsAdmin(BasePermission):
 
     Доступ выдается только аутентифицированному пользователю с ролью admin.
     """
+
     def has_permission(self, request, view):
         return request.user.is_authenticated and request.user.is_admin
 
@@ -17,6 +18,7 @@ class IsAdminOrReadOnly(BasePermission):
 
     Анонимные пользователи могут только читать контент.
     """
+
     def has_permission(self, request, view):
         return request.method in SAFE_METHODS or (
             request.user.is_authenticated and request.user.is_admin

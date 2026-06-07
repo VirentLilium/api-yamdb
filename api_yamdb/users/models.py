@@ -2,12 +2,14 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 from api.validators import username_validator
-from api_yamdb.constants import MAX_EMAIL_LENGTH, MAX_USERNAME_LENGTH
+from api_yamdb.constants import (MAX_EMAIL_LENGTH, MAX_FIRST_NAME_LENGTH,
+                                 MAX_LAST_NAME_LENGTH, MAX_USERNAME_LENGTH,
+                                 )
 
 
-class CustomUser(AbstractUser):
+class User(AbstractUser):
     """
-    Кастомная модель пользователя.
+    Модель пользователя.
 
     Атрибуты:
         username (str): Имя пользователя.
@@ -17,6 +19,7 @@ class CustomUser(AbstractUser):
         bio (str | None): Биография пользователя.
         role (Role): Роль пользователя в системе.
     """
+
     class Role(models.TextChoices):
         USER = 'user', 'Пользователь'
         MODERATOR = 'moderator', 'Модератор'
@@ -34,12 +37,12 @@ class CustomUser(AbstractUser):
         verbose_name='e-mail пользователя'
     )
     first_name = models.CharField(
-        max_length=150,
+        max_length=MAX_FIRST_NAME_LENGTH,
         blank=True,
         verbose_name='first name пользователя'
     )
     last_name = models.CharField(
-        max_length=150,
+        max_length=MAX_LAST_NAME_LENGTH,
         blank=True,
         verbose_name='last name пользователя'
     )
@@ -49,14 +52,17 @@ class CustomUser(AbstractUser):
     )
     role = models.CharField(
         choices=Role.choices,
-        max_length=100,
+        max_length=max(len(role) for role, _ in Role.choices),
         default=Role.USER,
         verbose_name='Роль пользователя'
     )
 
     class Meta:
-        verbose_name = 'user'
-        verbose_name_plural = 'users'
+        verbose_name = 'Пользователь'
+        verbose_name_plural = 'Пользователи'
+
+    def __str__(self):
+        return f'{self.username}: {self.first_name} {self.last_name}'
 
     @property
     def is_admin(self):
@@ -69,6 +75,3 @@ class CustomUser(AbstractUser):
     @property
     def is_moderator(self):
         return self.role == self.Role.MODERATOR
-
-    def __str__(self):
-        return f'{self.username}: {self.first_name} {self.last_name}'

@@ -1,6 +1,8 @@
 import re
 
-from rest_framework import serializers
+from django.core.exceptions import ValidationError
+
+from api_yamdb.constants import FORBIDDEN_NAME, USERNAME_PATTERN
 
 
 def username_validator(username):
@@ -9,20 +11,18 @@ def username_validator(username):
 
     Проверяет, что username содержит только разрешенные символы.
 
-    username не может быть равен 'me'.
-
     Исключения:
         ValidationError
     """
-    if username.lower() == 'me':
-        raise serializers.ValidationError(
-            'username "me" использовать нельзя'
+    if username == FORBIDDEN_NAME:
+        raise ValidationError(
+            f'username {FORBIDDEN_NAME} использовать нельзя'
         )
 
-    pattern = r'^[\w.@+-]+\Z'
+    pattern = USERNAME_PATTERN
 
     if not re.fullmatch(pattern, username):
-        raise serializers.ValidationError(
+        raise ValidationError(
             'Неподдерживаемые символы в username'
         )
 

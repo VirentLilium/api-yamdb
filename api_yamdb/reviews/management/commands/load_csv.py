@@ -1,10 +1,12 @@
 import csv
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 
 from reviews.models import Category, Genre, Title, Review, Comment
-from users.models import CustomUser
+
+User = get_user_model()
 
 
 DATA_DIR = settings.BASE_DIR / 'static' / 'data'
@@ -14,13 +16,19 @@ class Command(BaseCommand):
     help = 'Загрузка данных из CSV'
 
     def handle(self, *args, **options):
-        self.load_users()
-        self.load_categories()
-        self.load_genres()
-        self.load_titles()
-        self.load_genre_title()
-        self.load_reviews()
-        self.load_comments()
+
+        LOADERS = {
+            'users.csv': self.load_users,
+            'category.csv': self.load_categories,
+            'genre.csv': self.load_genres,
+            'titles.csv': self.load_titles,
+            'genre_title.csv': self.load_genre_title,
+            'review.csv': self.load_reviews,
+            'comments.csv': self.load_comments,
+        }
+
+        for loader in LOADERS.values():
+            loader()
 
         self.stdout.write(
             self.style.SUCCESS('Данные успешно загружены!')
@@ -31,7 +39,7 @@ class Command(BaseCommand):
             reader = csv.DictReader(file)
 
             for row in reader:
-                CustomUser.objects.update_or_create(
+                User.objects.update_or_create(
                     id=row['id'],
                     defaults={
                         'username': row['username'],
@@ -102,7 +110,7 @@ class Command(BaseCommand):
                     id=row['id'],
                     defaults={
                         'title': Title.objects.get(pk=row['title_id']),
-                        'author': CustomUser.objects.get(pk=row['author']),
+                        'author': User.objects.get(pk=row['author']),
                         'text': row['text'],
                         'score': row['score'],
                         'pub_date': row['pub_date'],
@@ -118,7 +126,7 @@ class Command(BaseCommand):
                     id=row['id'],
                     defaults={
                         'review': Review.objects.get(pk=row['review_id']),
-                        'author': CustomUser.objects.get(pk=row['author']),
+                        'author': User.objects.get(pk=row['author']),
                         'text': row['text'],
                         'pub_date': row['pub_date'],
                     }
