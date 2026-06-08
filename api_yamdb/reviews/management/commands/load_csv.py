@@ -27,15 +27,15 @@ class Command(BaseCommand):
             'comments.csv': self.load_comments,
         }
 
-        for loader in loaders.values():
-            loader()
+        for filename, loader in loaders.items():
+            loader(filename)
 
         self.stdout.write(
             self.style.SUCCESS('Данные успешно загружены!')
         )
 
-    def load_users(self):
-        with open(DATA_DIR / 'users.csv', encoding='utf-8') as file:
+    def load_users(self, filename):
+        with open(DATA_DIR / filename, encoding='utf-8') as file:
             reader = csv.DictReader(file)
 
             for row in reader:
@@ -51,8 +51,8 @@ class Command(BaseCommand):
                     }
                 )
 
-    def load_categories(self):
-        with open(DATA_DIR / 'category.csv', encoding='utf-8') as file:
+    def load_categories(self, filename):
+        with open(DATA_DIR / filename, encoding='utf-8') as file:
             reader = csv.DictReader(file)
 
             for row in reader:
@@ -64,8 +64,8 @@ class Command(BaseCommand):
                     }
                 )
 
-    def load_genres(self):
-        with open(DATA_DIR / 'genre.csv', encoding='utf-8') as file:
+    def load_genres(self, filename):
+        with open(DATA_DIR / filename, encoding='utf-8') as file:
             reader = csv.DictReader(file)
 
             for row in reader:
@@ -77,8 +77,8 @@ class Command(BaseCommand):
                     }
                 )
 
-    def load_titles(self):
-        with open(DATA_DIR / 'titles.csv', encoding='utf-8') as file:
+    def load_titles(self, filename):
+        with open(DATA_DIR / filename, encoding='utf-8') as file:
             reader = csv.DictReader(file)
 
             for row in reader:
@@ -91,8 +91,8 @@ class Command(BaseCommand):
                     }
                 )
 
-    def load_genre_title(self):
-        with open(DATA_DIR / 'genre_title.csv', encoding='utf-8') as file:
+    def load_genre_title(self, filename):
+        with open(DATA_DIR / filename, encoding='utf-8') as file:
             reader = csv.DictReader(file)
 
             for row in reader:
@@ -101,8 +101,8 @@ class Command(BaseCommand):
 
                 title.genre.add(genre)
 
-    def load_reviews(self):
-        with open(DATA_DIR / 'review.csv', encoding='utf-8') as file:
+    def load_reviews(self, filename):
+        with open(DATA_DIR / filename, encoding='utf-8') as file:
             reader = csv.DictReader(file)
 
             for row in reader:
@@ -117,8 +117,8 @@ class Command(BaseCommand):
                     }
                 )
 
-    def load_comments(self):
-        with open(DATA_DIR / 'comments.csv', encoding='utf-8') as file:
+    def load_comments(self, filename):
+        with open(DATA_DIR / filename, encoding='utf-8') as file:
             reader = csv.DictReader(file)
 
             for row in reader:
