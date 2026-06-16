@@ -1,77 +1,87 @@
+"""View-классы и ViewSet-классы API."""
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
-from django.db.models import Avg, IntegerField
+from django.db.models import Avg, IntegerField, QuerySet
 from django.db.models.functions import Cast
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
 from rest_framework.generics import get_object_or_404
+from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.serializers import BaseSerializer
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import AccessToken
 
 from api.filters import TitleFilter
-from api.permissions import (IsAdmin, IsAdminOrReadOnly,
-                             IsAdminModeratorAuthorOrReadOnly)
-from api.serializers import (CategorySerializer, CommentSerializer,
-                             GenreSerializer, ReviewSerializer,
-                             SignUpSerializer, TitleReadSerializer,
-                             TitleWriteSerializer, TokenSerializer,
-                             UserSerializer)
-from reviews.models import Category, Genre, Review, Title
+from api.permissions import (
+    IsAdmin,
+    IsAdminModeratorAuthorOrReadOnly,
+    IsAdminOrReadOnly,
+)
+from api.serializers import (
+    CategorySerializer,
+    CommentSerializer,
+    GenreSerializer,
+    ReviewSerializer,
+    SignUpSerializer,
+    TitleReadSerializer,
+    TitleWriteSerializer,
+    TokenSerializer,
+    UserSerializer,
+)
+from reviews.models import Category, Comment, Genre, Review, Title
 
 User = get_user_model()
 
 
 class BaseAuthAPIView(APIView):
-    """
-    Базовое API-представление для аутентификационных эндпоинтов.
+    """Базовое API-представление для аутентификационных эндпоинтов."""
 
-    Обрабатывает общий поток POST-запросов:
-        - создание сериализатора
-        - валидация входных данных
-        - передача управления в handle()
+    serializer_class: type[BaseSerializer] | None = None
 
-    Наследники должны реализовать метод handle(),
-    содержащий бизнес-логику конкретного эндпоинта.
-    """
-
-    serializer_class = None
-
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         """
-        Обрабатывает POST-запрос:
-            - валидирует входные данные через serializer
-            - вызывает handle() при успешной валидации
+        Обрабатывает POST-запрос.
+
+        Валидирует входные данные через serializer_class и передаёт
+        обработку в метод handle.
+
+        :param request: Объект HTTP-запроса.
+        :return: HTTP-ответ.
         """
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         return self.handle(serializer)
 
-    def handle(self, serializer):
+    def handle(self, serializer: BaseSerializer) -> Response:
         """
-        Абстрактный метод обработки бизнес-логики.
+        Обрабатывает бизнес-логику эндпоинта.
 
-        Исключения:
-            NotImplementedError: если метод не переопределён в дочернем классе
+        Метод должен быть переопределён в дочернем классе.
+
+        :param serializer: Валидный сериализатор.
+        :return: HTTP-ответ.
+        :raises NotImplementedError: Если метод не переопределён.
         """
         raise NotImplementedError
 
 
 class SignupAPIView(BaseAuthAPIView):
-    """Создаёт пользователя и отправляет email с кодом подтверждения."""
+    """API-представление регистрации пользователя."""
 
     serializer_class = SignUpSerializer
 
-    def handle(self, serializer):
+    def handle(self, serializer: BaseSerializer) -> Response:
         """
-        Создаёт пользователя и отправляет confirmation_code на email.
+        Создаёт пользователя и отправляет код подтверждения на email.
 
-        Возвращает:
-            данные созданного пользователя
+        :param serializer: Валидный сериализатор регистрации.
+        :return: HTTP-ответ с username и email пользователя.
         """
         user = serializer.save()
         confirmation_code = default_token_generator.make_token(user)
@@ -81,49 +91,41 @@ class SignupAPIView(BaseAuthAPIView):
             message=f'Confirmation code: {confirmation_code}',
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=(user.email,),
-            fail_silently=True)
+            fail_silently=True,
+        )
 
         return Response(
-            {"username": user.username, "email": user.email}
+            {
+                'username': user.username,
+                'email': user.email,
+            },
         )
 
 
 class TokenAPIView(BaseAuthAPIView):
-    """
-    Эндпоинт получения JWT-токена.
-
-    Пользователь отправляет:
-        - username
-        - confirmation_code
-
-    Token формируется после успешной валидации в serializer.
-    """
+    """API-представление получения JWT-токена."""
 
     serializer_class = TokenSerializer
 
-    def handle(self, serializer):
-        """Возвращает JWT-токен после успешной валидации."""
-        token = str(
-            AccessToken.for_user(serializer.user)
-        )
-        return Response(
-            {'token': token}
-        )
+    def handle(self, serializer: BaseSerializer) -> Response:
+        """
+        Возвращает JWT-токен после успешной валидации.
+
+        :param serializer: Валидный сериализатор получения токена.
+        :return: HTTP-ответ с JWT-токеном.
+        """
+        token = str(AccessToken.for_user(serializer.user))
+
+        return Response({'token': token})
 
 
-class CategoryGenreMixinViewSet(mixins.ListModelMixin,
-                                mixins.CreateModelMixin,
-                                mixins.DestroyModelMixin,
-                                viewsets.GenericViewSet):
-    """
-    Mixin для категорий и жанров.
-
-    Обеспечивает:
-        - пагинацию
-        - доступ ()
-        - поиск по имени name
-        - обращение к объекту по slug
-    """
+class CategoryGenreMixinViewSet(
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
+    """Базовый ViewSet для категорий и жанров."""
 
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (SearchFilter,)
@@ -132,150 +134,136 @@ class CategoryGenreMixinViewSet(mixins.ListModelMixin,
 
 
 class CategoryViewSet(CategoryGenreMixinViewSet):
-    """
-    ViewSet для модели Category.
-
-    Позволяет:
-        - получать список категорий (GET), все пользователи
-        - добавлять новую категорию (POST), администратор
-        - удалять категорию (DELETE), администратор
-    """
+    """ViewSet для категорий."""
 
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
 
 class GenreViewSet(CategoryGenreMixinViewSet):
-    """
-    ViewSet для модели Genre.
-
-    Позволяет:
-        - получать список жанров (GET), все пользователи
-        - добавлять новый жанр (POST), администратор
-        - удалять жанр (DELETE), администратор
-    """
+    """ViewSet для жанров."""
 
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
 
 
 class TitleViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet для модели Title.
-
-    Позволяет:
-        - получать список произведений (GET), все пользователи
-        - получать отдельное произведение (GET), все пользователи
-        - добавлять произведение (POST), администратор
-        - частично обновлять информацию о произведении (PATCH), администратор
-        - удалять произведение (DELETE), администратор
-
-    Поддерживает фильтрацию.
-
-    Вычисляет среднюю оценку произведения на основании отзывов.
-    """
+    """ViewSet для произведений."""
 
     queryset = Title.objects.annotate(
         rating=Cast(
             Avg('reviews__score'),
-            IntegerField()
-        )
+            IntegerField(),
+        ),
     ).order_by('rating')
 
-    http_method_names = ('get', 'post', 'patch', 'delete',)
+    http_method_names = ('get', 'post', 'patch', 'delete')
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = TitleFilter
 
-    def get_serializer_class(self):
+    def get_serializer_class(self) -> type[BaseSerializer]:
+        """
+        Возвращает сериализатор в зависимости от действия.
+
+        Для чтения используется TitleReadSerializer.
+        Для записи используется TitleWriteSerializer.
+
+        :return: Класс сериализатора.
+        """
         if self.action in ('list', 'retrieve'):
             return TitleReadSerializer
         return TitleWriteSerializer
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet для модели Review.
-
-    Отзывы привязаны к конкретному произведению по title_id.
-
-    Позволяет:
-        - получать список отзывов к произведению (GET), все пользователи
-        - получать отдельный отзыв (GET), все пользователи
-        - добавлять отзыв (POST), аутентифицированный пользователь
-        - частично обновлять отзыв (PATCH), автор, модератор или администратор
-        - удалять отзыв (DELETE), автор, модератор или администратор
-    """
+    """ViewSet для отзывов к произведениям."""
 
     serializer_class = ReviewSerializer
     permission_classes = (
         permissions.IsAuthenticatedOrReadOnly,
-        IsAdminModeratorAuthorOrReadOnly
+        IsAdminModeratorAuthorOrReadOnly,
     )
     http_method_names = ('get', 'post', 'patch', 'delete')
 
-    def get_title(self):
+    def get_title(self) -> Title:
+        """
+        Возвращает произведение из URL.
+
+        :return: Объект произведения.
+        :raises Http404: Если произведение не найдено.
+        """
         return get_object_or_404(Title, pk=self.kwargs['title_id'])
 
-    def get_queryset(self):
-        title = self.get_title()
-        return title.reviews.select_related('author')
+    def get_queryset(self) -> QuerySet[Review]:
+        """
+        Возвращает отзывы текущего произведения.
 
-    def perform_create(self, serializer):
+        :return: QuerySet отзывов.
+        """
+        title = self.get_title()
+        return title.reviews.select_related('author', 'title')
+
+    def perform_create(self, serializer: BaseSerializer) -> None:
+        """
+        Сохраняет новый отзыв.
+
+        Автором становится текущий пользователь,
+        произведение берётся из URL.
+
+        :param serializer: Сериализатор с валидированными данными.
+        :return: None.
+        """
         serializer.save(author=self.request.user, title=self.get_title())
 
 
 class CommentViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet для модели Comment.
-
-    Комментарии привязаны к конкретным произведениям и отзывам по их id.
-
-    Позволяет:
-        - получать список комментариев (GET), все пользователи
-        - получать отдельный комментарий (GET), все пользователи
-        - добавлять комментарий (POST), аутентифицированный пользователь
-        - частично обновлять комментарий (PATCH), автор, модератор или
-        администратор
-        - удалять комментарий (DELETE), автор, модератор или администратор
-    """
+    """ViewSet для комментариев к отзывам."""
 
     serializer_class = CommentSerializer
     permission_classes = (
         permissions.IsAuthenticatedOrReadOnly,
-        IsAdminModeratorAuthorOrReadOnly
+        IsAdminModeratorAuthorOrReadOnly,
     )
-    http_method_names = ('get', 'post', 'patch', 'delete',)
+    http_method_names = ('get', 'post', 'patch', 'delete')
 
-    def get_review(self):
+    def get_review(self) -> Review:
+        """
+        Возвращает отзыв из URL.
+
+        :return: Объект отзыва.
+        :raises Http404: Если отзыв не найден.
+        """
         return get_object_or_404(
             Review,
             pk=self.kwargs['review_id'],
-            title_id=self.kwargs['title_id'])
+            title_id=self.kwargs['title_id'],
+        )
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[Comment]:
+        """
+        Возвращает комментарии текущего отзыва.
+
+        :return: QuerySet комментариев.
+        """
         review = self.get_review()
-        return review.comments.select_related('author')
+        return review.comments.select_related('author', 'review')
 
-    def perform_create(self, serializer):
+    def perform_create(self, serializer: BaseSerializer) -> None:
+        """
+        Сохраняет новый комментарий.
+
+        Автором становится текущий пользователь,
+        отзыв берётся из URL.
+
+        :param serializer: Сериализатор с валидированными данными.
+        :return: None.
+        """
         serializer.save(author=self.request.user, review=self.get_review())
 
 
 class UserViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet для модели User.
-
-    Доступ только для администратора:
-        - получать список всех пользователей (GET)
-        - получать отдельного пользователя (GET)
-        - добавлять пользователя (POST)
-        - частично обновлять данные пользователя (PATCH)
-        - удалять пользователя (DELETE)
-        - поиск по username
-
-    Доступ для любого авторизованного пользователя:
-        - получение и изменение данных своей учетной записи по 'me'
-    """
+    """ViewSet для пользователей."""
 
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -283,20 +271,34 @@ class UserViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAdmin,)
     filter_backends = (SearchFilter,)
     search_fields = ('username',)
-    http_method_names = ('get', 'post', 'patch', 'delete',)
+    http_method_names = ('get', 'post', 'patch', 'delete')
 
-    @action(methods=['get', 'patch'], detail=False, url_path='me',
-            permission_classes=(permissions.IsAuthenticated,)
-            )
-    def me(self, request):
+    @action(
+        methods=['get', 'patch'],
+        detail=False,
+        url_path='me',
+        permission_classes=(permissions.IsAuthenticated,),
+    )
+    def me(self, request: Request) -> Response:
+        """
+        Возвращает или обновляет данные текущего пользователя.
+
+        При PATCH-запросе роль пользователя сохраняется неизменной.
+
+        :param request: Объект HTTP-запроса.
+        :return: HTTP-ответ с данными пользователя.
+        """
         user = request.user
+
         if request.method == 'PATCH':
             serializer = self.get_serializer(
                 user,
                 data=request.data,
-                partial=True)
+                partial=True,
+            )
             serializer.is_valid(raise_exception=True)
             serializer.save(role=user.role)
         else:
             serializer = self.get_serializer(user)
+
         return Response(serializer.data, status=status.HTTP_200_OK)
