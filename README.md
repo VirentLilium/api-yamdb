@@ -33,6 +33,7 @@ api-yamdb/
 ├── api_yamdb/
 │   │
 │   ├── api/
+│   │   ├── apps.py
 │   │   ├── filters.py
 │   │   ├── permissions.py
 │   │   ├── serializers.py
@@ -47,6 +48,7 @@ api-yamdb/
 │   │   │       └── load_csv.py
 │   │   ├── migrations/
 │   │   ├── admin.py
+│   │   ├── apps.py
 │   │   ├── models.py
 │   │   ├── validators.py
 │   │   └── __init__.py
@@ -54,6 +56,7 @@ api-yamdb/
 │   ├── users/
 │   │   ├── migrations/
 │   │   ├── admin.py
+│   │   ├── apps.py
 │   │   ├── models.py
 │   │   └── __init__.py
 │   │
@@ -65,6 +68,7 @@ api-yamdb/
 │   │
 │   ├── api_yamdb/
 │   │   ├── settings.py
+│   │   ├── constants.py
 │   │   ├── urls.py
 │   │   ├── wsgi.py
 │   │   ├── asgi.py
