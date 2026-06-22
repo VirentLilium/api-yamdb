@@ -1,14 +1,14 @@
-# 🚀 API_YAMDB
+# API_YAMDB
 
 Четвертый проект для дисциплины "Взаимодействие с WEB-приложением".
 
-## 📖 Содержание
+## Содержание
 - [О проекте](#о-проекте)
 - [Установка и запуск](#установка-и-запуск)
 - [Документация](#документация)
 - [Об авторе](#об-авторе)
 
-## 📌 О проекте
+## О проекте
 Проект представляет собой API для платформы YaMDb, которая собирает отзывы пользователей на произведения.
 
 Проект построен на Django REST Framework и ориентирован на практику построения API с авторизацией и правами доступа.
@@ -29,56 +29,57 @@
 
 ```text
 api-yamdb/
-│
-├── api_yamdb/
-│   │
-│   ├── api/
-│   │   ├── apps.py
-│   │   ├── filters.py
-│   │   ├── permissions.py
-│   │   ├── serializers.py
-│   │   ├── urls.py
-│   │   ├── validators.py
-│   │   ├── views.py
-│   │   └── __init__.py
-│   │
-│   ├── reviews/
-│   │   ├── management/
-│   │   │   └── commands/
-│   │   │       └── load_csv.py
-│   │   ├── migrations/
-│   │   ├── admin.py
-│   │   ├── apps.py
-│   │   ├── models.py
-│   │   ├── validators.py
-│   │   └── __init__.py
-│   │
-│   ├── users/
-│   │   ├── migrations/
-│   │   ├── admin.py
-│   │   ├── apps.py
-│   │   ├── models.py
-│   │   └── __init__.py
-│   │
-│   ├── static/
-│   │   └── data/
-│   │
-│   ├── templates/
-│   │   └── redoc.html
-│   │
-│   ├── api_yamdb/
-│   │   ├── settings.py
-│   │   ├── constants.py
-│   │   ├── urls.py
-│   │   ├── wsgi.py
-│   │   ├── asgi.py
-│   │   └── __init__.py
-│   │
-│   └── manage.py
-│
 ├── .gitignore
+├── LICENSE
+├── README.md
+├── pytest.ini
 ├── requirements.txt
-└── README.md
+├── setup.cfg
+├── postman_collection/
+├── tests/
+└── api_yamdb/
+    ├── manage.py
+    ├── api/
+    │   ├── __init__.py
+    │   ├── apps.py
+    │   ├── filters.py
+    │   ├── permissions.py
+    │   ├── serializers.py
+    │   ├── urls.py
+    │   ├── validators.py
+    │   └── views.py
+    │
+    ├── reviews/
+    │   ├── __init__.py
+    │   ├── admin.py
+    │   ├── apps.py
+    │   ├── models.py
+    │   ├── validators.py
+    │   ├── management/
+    │   │   └── commands/
+    │   │       └── load_csv.py
+    │   └── migrations/
+    │
+    ├── users/
+    │   ├── __init__.py
+    │   ├── admin.py
+    │   ├── apps.py
+    │   ├── models.py
+    │   └── migrations/
+    │
+    ├── static/
+    │   ├── redoc.yaml
+    │   └── data/
+    ├── templates/
+    │   └── redoc.html
+    │
+    └── api_yamdb/
+        ├── __init__.py
+        ├── asgi.py
+        ├── constants.py
+        ├── settings.py
+        ├── urls.py
+        └── wsgi.py
 ```
 
 ## 🔐 Аутентификация
@@ -91,14 +92,14 @@ POST /api/v1/auth/signup/
 ### Получение токена
 POST /api/v1/auth/token/
 
-## 🛡️ Права доступа
+## Права доступа
 
 - Чтение доступно всем пользователям (включая неаутентифицированных)
 - Авторизованные пользователи могут создавать отзывы и комментарии
 - Административные сущности (жанры, категории, произведения) создает только администратор
 - Редактировать и удалять контент могут только его автор, администратор и модератор
 
-## ⚙️ Основной функционал API
+## Основной функционал API
 
 ### Категории (Categories)
 - Просмотр списка категорий
@@ -204,7 +205,7 @@ Linux:
 python manage.py load_csv
 ```
 
-## 📚 Документация
+## Документация
 Обмен данными с API происходит в формате JSON.
 
 Чтобы ознакомиться с документацией и эндпоинтами, перейдите по адресу http://127.0.0.1:8000/redoc/, предварительно запустив сервер разработки.
@@ -295,14 +296,17 @@ GET /api/v1/titles/5/reviews/7/comments/11/
     "pub_date": "2019-08-24T14:15:22Z"
 }
 ```
-## ✨ Технологии
+## Технологии
 
 - Python 3.10+
 - Django
 - Django REST Framework
-- SimpleJWT
+- JWT Authentication
+- Pytest
+- ReDoc
+- SQLitet
 
-## 👩‍💻 Об авторе
+## Об авторе
 
 Тодышева Лилия Александровна - Студентка 1-го курса магистратуры ИТМО x Яндекс Практикум.
 
