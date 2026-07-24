@@ -304,7 +304,7 @@ GET /api/v1/titles/5/reviews/7/comments/11/
 - JWT Authentication
 - Pytest
 - ReDoc
-- SQLitet
+- SQLite
 
 ## Об авторе
 
